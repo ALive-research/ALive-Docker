@@ -10,6 +10,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt install -y git subversion build-essential
 
 RUN apt install -y ninja-build gawk
 
+# Install Xvfb - to be run from CircleCI
+RUN apt-get install xvfb
+ENV DISPLAY :99
 
 # Copied, with some modifications, from slicer/slicer-base:latest
 
