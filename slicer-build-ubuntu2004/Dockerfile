@@ -21,10 +21,10 @@ RUN \
   # Download sources
   #
   cd /usr/src && \
-  #git clone git://github.com/Slicer/Slicer && \
-  git clone https://github.com/ALive-research/Slicer.git && \
+  git clone git://github.com/Slicer/Slicer && \
+  #git clone https://github.com/ALive-research/Slicer.git && \
   cd Slicer && \
-  git checkout feature/pluggable_markups
+  git checkout daad7c2f41f1706ab8c2d0b144aeea38f9b5c6a3
  
 RUN \
   cd /usr/src/Slicer && \
