@@ -28,7 +28,7 @@ Run this to create an updated docker image. This need to be done to test with ne
 
 Give created image a name/tag::
 
-    docker tag slicer-build aliveresearch/slicer-build-ubuntu2004
+    docker tag slicer-build-ubuntu2004 aliveresearch/slicer-build-ubuntu2004
 
 Upload new image::
 
