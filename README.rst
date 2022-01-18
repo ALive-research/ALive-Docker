@@ -24,19 +24,19 @@ Usage
 
 Run this to create an updated docker image. This need to be done to test with new versions of Slicer::
 
-    docker build -t slicer-build .
+    docker build -t slicer-build-ubuntu2004 .
 
 Give created image a name/tag::
 
-    docker tag slicer-build aliveresearch/slicer-build
+    docker tag slicer-build aliveresearch/slicer-build-ubuntu2004
 
 Upload new image::
 
-    docker push aliveresearch/slicer-build
+    docker push aliveresearch/slicer-build-ubuntu2004
 	
 Useful commands
 ===============
 
 Explore Docker image in command line::
 
-    docker run --rm -it --entrypoint=/bin/bash aliveresearch/slicer-build
+    docker run --rm -it --entrypoint=/bin/bash aliveresearch/slicer-build-ubuntu2004
