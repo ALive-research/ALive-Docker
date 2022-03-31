@@ -7,8 +7,8 @@ https://github.com/ALive-research/Slicer-LiverAnalysis
 .. |slicer-build-images| image:: https://images.microbadger.com/badges/image/aliveresearch/slicer-build.svg
   :target: https://microbadger.com/images/aliveresearch/slicer-build
 
-.. |slicer-build-ubuntu2004-images| image:: https://images.microbadger.com/badges/image/olevs/slicer-build-ubuntu2004.svg
-  :target: https://microbadger.com/images/olevs/slicer-build-ubuntu2004
+.. |slicer-build-ubuntu2004-images| image:: https://images.microbadger.com/badges/image/aliveresearch/slicer-build-ubuntu2004.svg
+  :target: https://microbadger.com/images/aliveresearch/slicer-build-ubuntu2004
 
 
 Docker images containing Slicer build files, so that the CI system don't have to rebuild Slicer for each commit:
@@ -16,7 +16,7 @@ Docker images containing Slicer build files, so that the CI system don't have to
 aliveresearch/slicer-build
   |slicer-build-images| Based on slicer/slicer-base (centos7)
   
-olevs/slicer-build-ubuntu2004
+aliveresearch/slicer-build-ubuntu2004
   |slicer-build-ubuntu2004-images| Based on ubuntu:20.04, using code from slicer/slicer-base
 
 Usage
