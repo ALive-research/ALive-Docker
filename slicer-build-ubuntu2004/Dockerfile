@@ -79,6 +79,18 @@ RUN \
 # Build Slicer
 RUN cd /usr/src/Slicer-build && \/usr/src/Slicer-build/BuildSlicer.sh 
 
+RUN \
+  #
+  # Download and build SlicerVMTK
+  #
+  cd /usr/src && \
+  git clone https://github.com/vmtk/SlicerExtension-VMTK.git&& \
+  mkdir SlicerVMTK-build && \
+  cd SlicerVMTK-build && \
+  cmake -DSlicer_DIR:PATH=/usr/src/Slicer-build/Slicer-build ../SlicerExtension-VMTK/ && \
+  make -j5
+
+
 WORKDIR /usr/src/Slicer-build
 
 # Build-time metadata as defined at http://label-schema.org
