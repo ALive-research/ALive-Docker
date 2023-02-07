@@ -22,7 +22,8 @@ RUN \
   #
   cd /usr/src && \
   git clone https://github.com/Slicer/Slicer.git && \
-  cd Slicer
+  cd Slicer && \
+  git checkout v5.2.1
  
 RUN \
   cd /usr/src/Slicer && \
