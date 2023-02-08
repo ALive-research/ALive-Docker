@@ -86,6 +86,9 @@ RUN \
   #
   cd /usr/src && \
   git clone https://github.com/vmtk/SlicerExtension-VMTK.git&& \
+  cd SlicerExtension-VMTK && \
+  git checkout 094b64a090c5433ed20b00c8980a6361bd682860 && \
+  cd ..  && \
   mkdir SlicerVMTK-build && \
   cd SlicerVMTK-build && \
   cmake -DSlicer_DIR:PATH=/usr/src/Slicer-build/Slicer-build ../SlicerExtension-VMTK/ && \
@@ -102,6 +105,4 @@ ARG VCS_URL
 LABEL org.label-schema.name=$IMAGE \
       org.label-schema.vcs-ref=$VCS_REF \
       org.label-schema.vcs-url=$VCS_URL \
-      org.label-schema.schema-version="1.0" \
-	  
-	 
+      org.label-schema.schema-version="1.1"
