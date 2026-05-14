@@ -39,21 +39,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
     libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 \
     libdbus-1-3 libnss3 libxcb1-dev \
+    libglib2.0-dev \
     xvfb \
  && rm -rf /var/lib/apt/lists/*
 
 # ---------------------------------------------------------------------------
 # 2. Qt 6.9 via aqtinstall.
-#    Module list mirrors Slicer's Ubuntu 24.04 build instructions:
-#      qtbase qtmultimedia qttools qtsvg qt5compat qtwebengine
-#      qtwebchannel qtpositioning qtscxml
+#    Note on the module list: Qt 6.9 bundles `qtsvg` and `qttools` into
+#    the base install (they're no longer separate aqt modules; verify
+#    with `aqt list-qt linux desktop --modules 6.9.0 linux_gcc_64`).
+#    The modules we explicitly request cover what Slicer's Ubuntu 24.04
+#    build instructions enumerate plus the WebEngine deps.
 # ---------------------------------------------------------------------------
 ARG QT_VERSION=6.9.0
 ENV QT_BASE=/opt/qt
 RUN pip3 install --break-system-packages aqtinstall \
  && aqt install-qt linux desktop ${QT_VERSION} linux_gcc_64 \
         --outputdir ${QT_BASE} \
-        --modules qtmultimedia qtsvg qttools qtwebengine qtwebchannel \
+        --modules qtmultimedia qtwebengine qtwebchannel \
                   qtpositioning qt5compat qtscxml \
  && ln -sf ${QT_BASE}/${QT_VERSION}/gcc_64 /opt/qt-current \
  && pip3 uninstall --break-system-packages -y aqtinstall
@@ -81,8 +84,6 @@ RUN mkdir -p /usr/src/Slicer-build && cd /usr/src/Slicer-build && \
         -DCMAKE_BUILD_TYPE:STRING=Release \
         -DQt6_DIR:PATH=${Qt6_DIR} \
         -DSlicer_REQUIRED_QT_VERSION:STRING=6.8 \
-        -DSlicer_BUILD_ITKPython:BOOL=OFF \
-        -DSlicer_INSTALL_ITKPython:BOOL=OFF \
         /usr/src/Slicer && \
     ninja
 
