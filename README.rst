@@ -11,8 +11,7 @@ slicer-build-ubuntu2404 (current — published to GHCR)
 -----------------------------------------------------
 
 Ubuntu 24.04 + Qt 6.9 (via aqtinstall) + 3D Slicer ``main``,
-pre-built.  Bundles SlicerVMTK pre-built as a downstream-CI
-convenience.
+pre-built.
 
 Published to ``ghcr.io/alive-research/slicer-build-ubuntu2404`` by
 ``.github/workflows/build-image.yml`` on:
