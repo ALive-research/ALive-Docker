@@ -88,26 +88,7 @@ RUN mkdir -p /usr/src/Slicer-build && cd /usr/src/Slicer-build && \
     ninja
 
 # ---------------------------------------------------------------------------
-# 5. Pre-build SlicerVMTK against the freshly-built Slicer.
-#    Slicer-Liver lists SlicerVMTK as a build dependency in its
-#    ExtensionsIndex entry; bundling it pre-built saves ~20 min of
-#    downstream CI per run.
-# ---------------------------------------------------------------------------
-ARG SLICER_VMTK_REVISION=master
-RUN cd /usr/src && \
-    git clone https://github.com/vmtk/SlicerExtension-VMTK.git && \
-    cd SlicerExtension-VMTK && \
-    git reset --hard ${SLICER_VMTK_REVISION} && \
-    cd /usr/src && \
-    mkdir SlicerVMTK-build && cd SlicerVMTK-build && \
-    cmake -G Ninja \
-        -DCMAKE_BUILD_TYPE:STRING=Release \
-        -DSlicer_DIR:PATH=/usr/src/Slicer-build/Slicer-build \
-        /usr/src/SlicerExtension-VMTK && \
-    ninja
-
-# ---------------------------------------------------------------------------
-# 6. Convenience: Xvfb display for tests that need an X server.
+# 5. Convenience: Xvfb display for tests that need an X server.
 # ---------------------------------------------------------------------------
 ENV DISPLAY=:99
 
