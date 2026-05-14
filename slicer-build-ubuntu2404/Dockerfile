@@ -40,6 +40,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 \
     libdbus-1-3 libnss3 libxcb1-dev \
     libglib2.0-dev \
+    # --- Qt 6.9 runtime deps not pulled by aqt itself ---
+    # aqt installs Qt binaries from Qt's installer but does NOT install
+    # the OS-level libraries those binaries link against at run time.
+    # On Ubuntu, Slicer's apt install line uses `qt6-multimedia-dev`
+    # which pulls these transitively; we skip qt6-multimedia-dev (it's
+    # Qt 6.4 on Ubuntu 24.04, conflicting with aqt's Qt 6.9), so we
+    # have to enumerate them here.
+    #
+    # Qt6Multimedia: libpulse (PulseAudio), libasound2 (ALSA),
+    # libgstreamer1.0-0 + libgstreamer-plugins-base1.0-0 (GStreamer
+    # for media playback).  Slicer's tests link Qt6Multimedia even
+    # when the extension code does not use it, so absence triggers
+    # `error while loading shared libraries: libpulse.so.0` at test
+    # time and CTest fails 14/14.
+    #
+    # Qt6WebEngine: libnss3 (already), libnspr4, libxss-conf
+    # (already), libdrm2 (transitively).  libnspr4 is the only one
+    # not pulled in by what we already have.
+    libpulse-dev libasound2-dev \
+    libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+    libnspr4-dev \
     xvfb \
  && rm -rf /var/lib/apt/lists/*
 
