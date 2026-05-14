@@ -1,42 +1,69 @@
 ALive-Docker
 ************
 
-Dockerfiles used for CI setup for the Liver Analysis Plugin for 3D Slicer:
-https://github.com/ALive-research/Slicer-LiverAnalysis
+Dockerfiles used for CI setup for the ALive project's Slicer extensions
+(Slicer-Liver and friends).
 
-.. |slicer-build-images| image:: https://images.microbadger.com/badges/image/aliveresearch/slicer-build.svg
-  :target: https://microbadger.com/images/aliveresearch/slicer-build
+Images
+======
 
-.. |slicer-build-ubuntu2004-images| image:: https://images.microbadger.com/badges/image/aliveresearch/slicer-build-ubuntu2004.svg
-  :target: https://microbadger.com/images/aliveresearch/slicer-build-ubuntu2004
+slicer-build-ubuntu2404 (current — published to GHCR)
+-----------------------------------------------------
 
+Ubuntu 24.04 + Qt 6.9 (via aqtinstall) + 3D Slicer ``main``,
+pre-built.  Bundles SlicerVMTK pre-built as a downstream-CI
+convenience.
 
-Docker images containing Slicer build files, so that the CI system don't have to rebuild Slicer for each commit:
+Published to ``ghcr.io/alive-research/slicer-build-ubuntu2404`` by
+``.github/workflows/build-image.yml`` on:
+
+- pushes to ``master`` that touch the Dockerfile,
+- manual ``workflow_dispatch`` (with optional Slicer-revision override),
+- a weekly cron (Monday 03:00 UTC) that catches Slicer ``main`` drift.
+
+Tags published per build:
+
+- ``:latest`` — the rolling pointer; what consumers normally use.
+- ``:main-<7-char-slicer-sha>`` — reproducible pin to a Slicer revision.
+- ``:dockerfile-<full-alive-docker-sha>`` — pin to an exact recipe commit.
+
+The pre-built Slicer tree lives at
+``/usr/src/Slicer-build/Slicer-build/`` (where ``SlicerConfig.cmake``
+resolves; consumers pass this path as ``Slicer_DIR``).
+
+Legacy images (Docker Hub, unmaintained)
+----------------------------------------
 
 aliveresearch/slicer-build
-  |slicer-build-images| Based on slicer/slicer-base (centos7)
-  
+  Based on ``slicer/slicer-base`` (CentOS 7).  Last built 2021.
+
 aliveresearch/slicer-build-ubuntu2004
-  |slicer-build-ubuntu2004-images| Based on ubuntu:20.04, using code from slicer/slicer-base
+  Based on ``ubuntu:20.04`` + Qt 5 + Slicer 5.2.1.  Last built 2023-02-08.
+  Used by ``.circleci/config.yml`` in ``Slicer-Liver`` until the GH
+  Actions migration lands; retained here for rollback.
 
 Usage
 =====
 
-Run this to create an updated docker image. This need to be done to test with new versions of Slicer::
+Pull the published image (from a downstream CI workflow or locally)::
 
-    docker build -t slicer-build-ubuntu2004 .
+    docker pull ghcr.io/alive-research/slicer-build-ubuntu2404:latest
 
-Give created image a name/tag::
+Local rebuild (e.g. to test a recipe change before pushing)::
 
-    docker tag slicer-build-ubuntu2004 aliveresearch/slicer-build-ubuntu2004
+    cd slicer-build-ubuntu2404
+    docker build -t slicer-build-ubuntu2404:local .
 
-Upload new image::
-
-    docker push aliveresearch/slicer-build-ubuntu2004
-	
 Useful commands
 ===============
 
-Explore Docker image in command line::
+Explore the image interactively::
 
-    docker run --rm -it --entrypoint=/bin/bash aliveresearch/slicer-build-ubuntu2004
+    docker run --rm -it --entrypoint=/bin/bash \
+      ghcr.io/alive-research/slicer-build-ubuntu2404:latest
+
+Check the pinned Slicer revision inside the image::
+
+    docker run --rm ghcr.io/alive-research/slicer-build-ubuntu2404:latest \
+      sh -c 'cat /usr/src/Slicer-build/Slicer-build/PACKAGE_FILE.txt 2>/dev/null || \
+             ls /opt/qt-current && Qt6_DIR=/opt/qt-current/lib/cmake/Qt6 && echo Slicer_DIR=/usr/src/Slicer-build/Slicer-build'

@@ -1,0 +1,115 @@
+# Build and publish the slicer-build-ubuntu2404 image to GHCR.
+#
+# Triggers:
+#   - push to master that touches the Dockerfile or this workflow
+#   - manual dispatch (with optional Slicer SHA override)
+#   - weekly schedule to track Slicer main
+#
+# Why GHCR (and not Docker Hub):
+#   - Auth via the runner's GITHUB_TOKEN with `packages: write`; no
+#     Docker Hub credentials to manage or rotate.
+#   - Permissions tied to the GitHub org; visibility controlled per
+#     package on the org's packages page.
+#   - Image lives next to the source.
+
+name: build-image
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "slicer-build-ubuntu2404/**"
+      - ".github/workflows/build-image.yml"
+  workflow_dispatch:
+    inputs:
+      slicer_revision:
+        description: "Slicer revision (branch, tag, or SHA). Default: main."
+        required: false
+        default: "main"
+  schedule:
+    # Weekly: Monday 03:00 UTC.  Catches Slicer main drift without
+    # depending on a maintainer push.
+    - cron: "0 3 * * 1"
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: build-image-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    name: build slicer-build-ubuntu2404
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # Slicer superbuild on 4-core runner can take 4–6 h.
+
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/slicer-build-ubuntu2404
+      SLICER_REVISION: ${{ github.event.inputs.slicer_revision || 'main' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve Slicer SHA
+        id: slicer
+        run: |
+          set -euo pipefail
+          # Resolve branch / tag / SHA to a concrete SHA so the image
+          # is reproducible even when the input is a moving ref.
+          sha=$(git ls-remote https://github.com/Slicer/Slicer.git \
+                  "${SLICER_REVISION}" "refs/heads/${SLICER_REVISION}" \
+                  "refs/tags/${SLICER_REVISION}" \
+                | awk '{print $1; exit}')
+          if [ -z "$sha" ]; then
+            # Assume the input is already a SHA prefix.
+            sha=$SLICER_REVISION
+          fi
+          echo "Resolved Slicer revision '${SLICER_REVISION}' -> ${sha}"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+          echo "short=${sha:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: slicer-build-ubuntu2404
+          file: slicer-build-ubuntu2404/Dockerfile
+          push: true
+          # Three tags:
+          #   - latest             : the rolling pointer the consumer uses
+          #   - main-<slicer-sha>  : reproducible pin for an exact Slicer rev
+          #   - <git-short-sha>    : pin to a specific ALive-Docker commit
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:main-${{ steps.slicer.outputs.short }}
+            ${{ env.IMAGE }}:dockerfile-${{ github.sha }}
+          build-args: |
+            SLICER_REVISION=${{ steps.slicer.outputs.sha }}
+            IMAGE=${{ env.IMAGE }}
+            VCS_REF=${{ github.sha }}
+            VCS_URL=https://github.com/${{ github.repository }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Sanity: fail the workflow if the produced image doesn't
+          # contain SlicerConfig.cmake at the documented path.
+          provenance: false
+
+      - name: Smoke-test image layout
+        run: |
+          set -euo pipefail
+          docker pull "${IMAGE}:dockerfile-${{ github.sha }}"
+          docker run --rm "${IMAGE}:dockerfile-${{ github.sha }}" \
+            test -f /usr/src/Slicer-build/Slicer-build/SlicerConfig.cmake
+          echo "SlicerConfig.cmake present at expected path."
