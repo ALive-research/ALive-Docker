@@ -46,7 +46,11 @@ jobs:
     timeout-minutes: 360  # Slicer superbuild on 4-core runner can take 4–6 h.
 
     env:
-      IMAGE: ghcr.io/${{ github.repository_owner }}/slicer-build-ubuntu2404
+      # GHCR (and Docker generally) requires lowercase repository names.
+      # `${{ github.repository_owner }}` resolves to `ALive-research`
+      # (mixed case), which buildx rejects.  Hard-code the lowercase
+      # owner so the image name is stable and explicit.
+      IMAGE: ghcr.io/alive-research/slicer-build-ubuntu2404
       SLICER_REVISION: ${{ github.event.inputs.slicer_revision || 'main' }}
 
     steps:
