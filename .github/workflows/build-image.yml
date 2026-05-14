@@ -54,6 +54,22 @@ jobs:
       SLICER_REVISION: ${{ github.event.inputs.slicer_revision || 'main' }}
 
     steps:
+      # ubuntu-latest runners ship with only ~14 GB free; the Slicer
+      # SuperBuild generates 25–30+ GB of intermediate artifacts.
+      # Drop pre-installed cruft (Android SDK, .NET, Haskell, etc.) to
+      # free ~25 GB before `docker build`.  Without this the build trips
+      # on "No space left on device" partway through Slicer's deps.
+      - name: Free runner disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false  # too slow; not on our critical path
+          swap-storage: false    # keep swap, the build may need it
+          docker-images: true
+
       - name: Checkout
         uses: actions/checkout@v4
 
