@@ -29,7 +29,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git git-lfs build-essential cmake ninja-build pkg-config \
     curl wget ca-certificates gnupg \
     perl gawk \
-    python3 python3-pip python3-venv python3-dev python3-pytest \
+    python3 python3-pip python3-venv python3-dev \
+    python3-pytest python3-jsonschema \
     libssl-dev libffi-dev zlib1g-dev libsqlite3-dev libreadline-dev \
     libxt-dev libxext-dev libxrender-dev libxrandr-dev libxfixes-dev \
     libxss-dev libxslt1-dev libxinerama-dev libxcursor-dev libxi-dev \
