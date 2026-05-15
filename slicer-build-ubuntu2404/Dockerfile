@@ -116,15 +116,35 @@ RUN mkdir -p /usr/src/Slicer-build && cd /usr/src/Slicer-build && \
 #    additions or removals here do not invalidate the ~3-hour Slicer
 #    build layer cache.
 #
-#    Anything Slicer-Liver (or other downstream) test/CI needs but
-#    Slicer's build does not should land in this layer:
-#      - python3-pytest      — Slicer-Liver pytest scaffold (ADR-0008)
-#      - python3-jsonschema  — terminology JSON schema validation (PR #315)
+#    Slicer ships an embedded Python tree at
+#    /usr/src/Slicer-build/python-install/.  Slicer extension builds
+#    set CMake's Python3_EXECUTABLE to its launcher (PythonSlicer), so
+#    test scaffolds that probe Python3_EXECUTABLE — like Slicer-Liver's
+#    pytest scaffold from PR #316, which runs ``import slicer`` inside
+#    pytest — only see packages installed *inside* that embedded tree.
+#    System-level python3-pytest from apt does not show up there.
+#
+#    Strategy:
+#      - apt-installed python3-pytest / python3-jsonschema sit in the
+#        system Python for developer-side scripts and apt-managed
+#        convenience.
+#      - The same two packages are *also* installed into Slicer's
+#        embedded Python via ``PythonSlicer -m pip`` so extension test
+#        scaffolds find them.
 # ---------------------------------------------------------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pytest \
     python3-jsonschema \
  && rm -rf /var/lib/apt/lists/*
+
+# Install the same tooling into Slicer's embedded Python.  Extension
+# CMake scaffolds probe Python3_EXECUTABLE which resolves to
+# PythonSlicer for downstream builds; system-Python pytest is invisible
+# from there.
+RUN /usr/src/Slicer-build/python-install/bin/PythonSlicer \
+        -m pip install --no-cache-dir \
+        pytest \
+        jsonschema
 
 # ---------------------------------------------------------------------------
 # 6. Convenience: Xvfb display for tests that need an X server.
