@@ -30,7 +30,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget ca-certificates gnupg \
     perl gawk \
     python3 python3-pip python3-venv python3-dev \
-    python3-pytest python3-jsonschema \
     libssl-dev libffi-dev zlib1g-dev libsqlite3-dev libreadline-dev \
     libxt-dev libxext-dev libxrender-dev libxrandr-dev libxfixes-dev \
     libxss-dev libxslt1-dev libxinerama-dev libxcursor-dev libxi-dev \
@@ -110,7 +109,25 @@ RUN mkdir -p /usr/src/Slicer-build && cd /usr/src/Slicer-build && \
     ninja
 
 # ---------------------------------------------------------------------------
-# 5. Convenience: Xvfb display for tests that need an X server.
+# 5. Test/runtime tooling for downstream extension CI.
+#
+#    These packages are NOT used by Slicer's own build.  Installing them
+#    in their own RUN layer AFTER the cmake+ninja step means future
+#    additions or removals here do not invalidate the ~3-hour Slicer
+#    build layer cache.
+#
+#    Anything Slicer-Liver (or other downstream) test/CI needs but
+#    Slicer's build does not should land in this layer:
+#      - python3-pytest      — Slicer-Liver pytest scaffold (ADR-0008)
+#      - python3-jsonschema  — terminology JSON schema validation (PR #315)
+# ---------------------------------------------------------------------------
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-pytest \
+    python3-jsonschema \
+ && rm -rf /var/lib/apt/lists/*
+
+# ---------------------------------------------------------------------------
+# 6. Convenience: Xvfb display for tests that need an X server.
 # ---------------------------------------------------------------------------
 ENV DISPLAY=:99
 
