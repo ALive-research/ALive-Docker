@@ -109,7 +109,50 @@ RUN mkdir -p /usr/src/Slicer-build && cd /usr/src/Slicer-build && \
     ninja
 
 # ---------------------------------------------------------------------------
-# 5. Test/runtime tooling for downstream extension CI.
+# 5. Pre-built Slicer extensions consumed via EXTENSION_DEPENDS by
+#    downstream extensions (Slicer-Liver and friends).
+#
+#    SlicerLayerDisplayableManager (LayerDM) is the displayable-manager
+#    framework Slicer-Liver migrates onto for v2.0.0 (per its ADR-0002
+#    + ADR-0013 §5).  Pre-building it here exposes:
+#
+#      - /usr/src/SlicerLayerDM-build       (build tree)
+#      - SlicerLayerDisplayableManager_DIR  (env var consumed by
+#                                            downstream find_package)
+#
+#    Downstream extension CI that lists SlicerLayerDisplayableManager
+#    in EXTENSION_DEPENDS only needs the env var set; no clone or
+#    build step is required at the consumer side.
+#
+#    Pinned to a specific upstream commit so the image is reproducible;
+#    bump LAYERDM_REVISION + rebuild the image to advance the pin.
+#
+#    The layer sits BETWEEN the Slicer build (heavy, slow-changing)
+#    and the test/runtime tooling layer (light, fast-changing) so a
+#    Python-tooling bump does not invalidate the LayerDM build cache.
+# ---------------------------------------------------------------------------
+ARG LAYERDM_REVISION=1689cc55d2deef1f1edd96f6dfa301683e47a469
+
+RUN git clone https://github.com/KitwareMedical/SlicerLayerDisplayableManager.git \
+        /usr/src/SlicerLayerDM && \
+    cd /usr/src/SlicerLayerDM && \
+    git checkout ${LAYERDM_REVISION} && \
+    git log -1 --pretty=oneline && \
+    mkdir -p /usr/src/SlicerLayerDM-build && \
+    cd /usr/src/SlicerLayerDM-build && \
+    cmake -G Ninja \
+        -DCMAKE_BUILD_TYPE:STRING=Release \
+        -DSlicer_DIR:PATH=/usr/src/Slicer-build/Slicer-build \
+        /usr/src/SlicerLayerDM && \
+    ninja
+
+# Advertise the build tree to downstream extensions so
+# `-DSlicerLayerDisplayableManager_DIR=...` is not required at the
+# consumer-side cmake invocation.
+ENV SlicerLayerDisplayableManager_DIR=/usr/src/SlicerLayerDM-build
+
+# ---------------------------------------------------------------------------
+# 6. Test/runtime tooling for downstream extension CI.
 #
 #    These packages are NOT used by Slicer's own build.  Installing them
 #    in their own RUN layer AFTER the cmake+ninja step means future
@@ -147,7 +190,7 @@ RUN /usr/src/Slicer-build/python-install/bin/PythonSlicer \
         jsonschema
 
 # ---------------------------------------------------------------------------
-# 6. Convenience: Xvfb display for tests that need an X server.
+# 7. Convenience: Xvfb display for tests that need an X server.
 # ---------------------------------------------------------------------------
 ENV DISPLAY=:99
 
