@@ -152,6 +152,88 @@ RUN git clone https://github.com/KitwareMedical/SlicerLayerDisplayableManager.gi
 ENV SlicerLayerDisplayableManager_DIR=/usr/src/SlicerLayerDM-build
 
 # ---------------------------------------------------------------------------
+# 5b. SlicerExtraMarkups (alias "ExtraMarkups" -- the EXTENSION_DEPENDS
+#     name used by both Slicer-Liver consumers and the SlicerVMTK
+#     SuperBuild below).
+#
+#     Provides the additional vtkMRMLMarkups* node families that
+#     SlicerVMTK's ExtractCenterline UI and downstream extensions like
+#     Slicer-Liver's territory grouping panel depend on.  Small build
+#     (no SuperBuild, single CMakeLists.txt), so it lands in its own
+#     RUN layer for cleaner cache invalidation.
+#
+#     Bump EXTRAMARKUPS_REVISION + rebuild the image to advance the pin.
+# ---------------------------------------------------------------------------
+ARG EXTRAMARKUPS_REVISION=0cebf118257cdabaf460c2329dd52421c3bd8552
+
+RUN git clone https://github.com/chir-set/SlicerExtraMarkups.git \
+        /usr/src/SlicerExtraMarkups && \
+    cd /usr/src/SlicerExtraMarkups && \
+    git checkout ${EXTRAMARKUPS_REVISION} && \
+    git log -1 --pretty=oneline && \
+    mkdir -p /usr/src/SlicerExtraMarkups-build && \
+    cd /usr/src/SlicerExtraMarkups-build && \
+    cmake -G Ninja \
+        -DCMAKE_BUILD_TYPE:STRING=Release \
+        -DSlicer_DIR:PATH=/usr/src/Slicer-build/Slicer-build \
+        /usr/src/SlicerExtraMarkups && \
+    ninja
+
+# Plain CMake project (no SuperBuild), so the build tree itself ships
+# ``ExtraMarkupsConfig.cmake`` -- that is the path downstream
+# ``find_package(ExtraMarkups)`` resolves to.
+ENV ExtraMarkups_DIR=/usr/src/SlicerExtraMarkups-build
+
+# ---------------------------------------------------------------------------
+# 5c. SlicerExtension-VMTK (alias "SlicerVMTK") -- the Vascular Modeling
+#     Toolkit Slicer extension that provides ``ExtractCenterline``,
+#     centerline computation, and other vessel-graph tooling.
+#
+#     SlicerVMTK is a CMake SuperBuild: it clones VMTK at configure
+#     time and builds it as part of the outer CMake invocation.  The
+#     resulting Slicer extension lands at
+#     ``/usr/src/SlicerVMTK-build/inner-build/``; the SuperBuild's
+#     ``EXTENSION_BUILD_SUBDIRECTORY`` directive routes
+#     ``SlicerVMTKConfig.cmake`` to that path.
+#
+#     ExtraMarkups dependency is satisfied above (layer 5b);
+#     ``ExtraMarkups_DIR`` is already in the env.
+#
+#     Build cost: ~15-30 min (SuperBuild + VMTK).  Sits BEFORE the
+#     test/runtime tooling layer so Python-tooling bumps do not
+#     invalidate the VMTK build cache.
+#
+#     Bump SLICERVMTK_REVISION + rebuild the image to advance the pin.
+#
+#     Downstream Slicer-Liver consumes this via the runtime Python
+#     module ``ExtractCenterline`` (used by ``VascularTerritories``'s
+#     centerline computation Logic methods).  Slicer-Liver's CI test
+#     workflow injects ``${SlicerVMTK_DIR}/lib/Slicer-5.11/qt-*-modules``
+#     into ``--additional-module-paths`` for the tests that exercise
+#     centerline operations.
+# ---------------------------------------------------------------------------
+ARG SLICERVMTK_REVISION=1d3dc9fd1ef8ee6897cb0b1996d19985a263d2f5
+
+RUN git clone https://github.com/vmtk/SlicerExtension-VMTK.git \
+        /usr/src/SlicerVMTK && \
+    cd /usr/src/SlicerVMTK && \
+    git checkout ${SLICERVMTK_REVISION} && \
+    git log -1 --pretty=oneline && \
+    mkdir -p /usr/src/SlicerVMTK-build && \
+    cd /usr/src/SlicerVMTK-build && \
+    cmake -G Ninja \
+        -DCMAKE_BUILD_TYPE:STRING=Release \
+        -DSlicer_DIR:PATH=/usr/src/Slicer-build/Slicer-build \
+        -DExtraMarkups_DIR:PATH=/usr/src/SlicerExtraMarkups-build \
+        /usr/src/SlicerVMTK && \
+    ninja
+
+# The SuperBuild produces ``SlicerVMTKConfig.cmake`` under
+# ``inner-build/``; that is the path downstream ``find_package(SlicerVMTK)``
+# resolves to.
+ENV SlicerVMTK_DIR=/usr/src/SlicerVMTK-build/inner-build
+
+# ---------------------------------------------------------------------------
 # 6. Test/runtime tooling for downstream extension CI.
 #
 #    These packages are NOT used by Slicer's own build.  Installing them
