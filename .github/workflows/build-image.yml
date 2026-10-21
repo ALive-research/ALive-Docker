@@ -91,6 +91,13 @@ jobs:
           echo "sha=${sha}" >> "$GITHUB_OUTPUT"
           echo "short=${sha:0:7}" >> "$GITHUB_OUTPUT"
 
+          # A tag naming the revision that was ASKED FOR, not the branch
+          # this workflow happens to track.  This is what makes staleness
+          # visible: `v5.12.4` is obviously not current once 5.12.5 ships,
+          # where `main-<sha>` looks current forever and silently is not.
+          # Slashes are legal in git refs but not in image tags.
+          echo "reftag=$(printf '%s' "${SLICER_REVISION}" | tr '/' '-')" >> "$GITHUB_OUTPUT"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -107,12 +114,21 @@ jobs:
           context: slicer-build-ubuntu2404
           file: slicer-build-ubuntu2404/Dockerfile
           push: true
-          # Three tags:
-          #   - latest             : the rolling pointer the consumer uses
-          #   - main-<slicer-sha>  : reproducible pin for an exact Slicer rev
-          #   - <git-short-sha>    : pin to a specific ALive-Docker commit
+          # Four tags:
+          #   - latest              : the rolling pointer
+          #   - <revision>          : the revision as ASKED FOR (v5.12.4,
+          #                           main, ...).  Consumers pin THIS, so a
+          #                           superseded release is visible as one.
+          #   - main-<slicer-sha>   : reproducible pin for an exact Slicer rev
+          #   - dockerfile-<sha>    : pin to a specific ALive-Docker commit
+          #
+          # The revision tag is deliberately first among the pins: the
+          # previous scheme emitted only `main-<sha>` whatever was asked
+          # for, so a release build was indistinguishable from a
+          # main-tracking one and consumers had no stale signal at all.
           tags: |
             ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ steps.slicer.outputs.reftag }}
             ${{ env.IMAGE }}:main-${{ steps.slicer.outputs.short }}
             ${{ env.IMAGE }}:dockerfile-${{ github.sha }}
           build-args: |
